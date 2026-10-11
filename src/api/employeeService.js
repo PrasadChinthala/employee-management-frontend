@@ -7,5 +7,8 @@ const getAllEmployees = () => {
 const createEmployee = (employee) => {
     return axiosInstance.post("/employees", employee);
 }
+const updateEmployee = (id, employee) => {
+    return axiosInstance.put(`employees/${id}`, employee);
+}
 
-export { getAllEmployees, createEmployee };
+export { getAllEmployees, createEmployee, updateEmployee };

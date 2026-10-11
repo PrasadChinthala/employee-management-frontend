@@ -2,26 +2,29 @@
 import { useEffect, useState } from "react";
 import {
     getAllEmployees,
-    createEmployee
+    createEmployee,
+    updateEmployee
 } from "./api/employeeService";
+
+const emptyForm = {
+    name: "",
+    age: "",
+    salary: "",
+    department: ""
+};
 
 function App() {
     const [employees, setEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
-
-    const [formData, setFormData] = useState({
-        name: "",
-        age: "",
-        salary: "",
-        department: ""
-    });
+    const [formData, setFormData] = useState(emptyForm);
+    const [editingId, setEditingId] = useState(null);
 
     const fetchEmployees = () => {
         setLoading(true);
 
-        getAllEmployees()
+        return getAllEmployees()
             .then((response) => {
                 setEmployees(response.data);
                 setError("");
@@ -48,6 +51,27 @@ function App() {
         }));
     };
 
+    const handleEdit = (employee) => {
+        setEditingId(employee.id);
+
+        setFormData({
+            name: employee.name,
+            age: String(employee.age),
+            salary: String(employee.salary),
+            department: employee.department
+        });
+
+        setError("");
+        setSuccess("");
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setFormData(emptyForm);
+        setError("");
+        setSuccess("");
+    };
+
     const handleSubmit = (event) => {
         event.preventDefault();
 
@@ -61,22 +85,28 @@ function App() {
             department: formData.department.trim()
         };
 
-        createEmployee(employee)
+        const isEditing = editingId !== null;
+
+        const request = isEditing
+            ? updateEmployee(editingId, employee)
+            : createEmployee(employee);
+
+        request
             .then(() => {
-                setSuccess("Employee created successfully!");
+                setSuccess(
+                    isEditing
+                        ? "Employee updated successfully!"
+                        : "Employee created successfully!"
+                );
 
-                setFormData({
-                    name: "",
-                    age: "",
-                    salary: "",
-                    department: ""
-                });
+                setEditingId(null);
+                setFormData({ ...emptyForm });
 
-                fetchEmployees();
+                return fetchEmployees();
             })
             .catch((error) => {
-                console.error("Error creating employee:", error);
-                setError("Failed to create employee. Please check your input and try again.");
+                console.error("Error saving employee:", error);
+                setError("Failed to save employee. Please try again.");
             });
     };
 
@@ -84,7 +114,9 @@ function App() {
         <div>
             <h1>Employee Management</h1>
 
-            <h2>Add Employee</h2>
+            <h2>
+                {editingId !== null ? "Edit Employee" : "Add Employee"}
+            </h2>
 
             <form onSubmit={handleSubmit}>
                 <div>
@@ -134,7 +166,18 @@ function App() {
                     />
                 </div>
 
-                <button type="submit">Add Employee</button>
+                <button type="submit">
+                    {editingId !== null ? "Update Employee" : "Add Employee"}
+                </button>
+
+                {editingId !== null && (
+                    <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                    >
+                        Cancel
+                    </button>
+                )}
             </form>
 
             {success && <p>{success}</p>}
@@ -155,6 +198,7 @@ function App() {
                             <th>Age</th>
                             <th>Salary</th>
                             <th>Department</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
 
@@ -166,6 +210,14 @@ function App() {
                                 <td>{employee.age}</td>
                                 <td>{employee.salary}</td>
                                 <td>{employee.department}</td>
+                                <td>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleEdit(employee)}
+                                    >
+                                        Edit
+                                    </button>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
